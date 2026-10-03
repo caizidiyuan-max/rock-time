@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#142b44">
+<title>あしたの朝まで｜ロック時間計算</title><meta name="description" content="今から朝5:30・6:00までのロック時間がひと目でわかる計算アプリ。">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23142b44'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M16 9v7l5 3' stroke='%23ffbe60' fill='none' stroke-width='2'/%3E%3C/svg%3E">
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#142b44;background:#edf2f7;font-synthesis:none}*{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;padding:32px 20px}main{width:100%;max-width:480px}header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}h1{font-size:19px;margin:0;letter-spacing:.03em}.eyebrow{font-size:12px;letter-spacing:.16em;font-weight:750;margin:0 0 7px;color:#50647a}.clock{font-size:14px;font-variant-numeric:tabular-nums;color:#50647a}.choices{border:0;padding:0;margin:0 0 22px}legend{font-size:16px;font-weight:650;margin-bottom:12px}.options{display:grid;grid-template-columns:1fr 1fr;gap:12px}.option{position:relative;cursor:pointer}.option input{position:absolute;opacity:0;width:1px;height:1px}.option span{display:flex;align-items:center;justify-content:space-between;background:#fff;border:2px solid #d7e0eb;border-radius:15px;padding:18px;font-size:26px;font-weight:750;transition:.15s}.option span:after{content:"";width:18px;height:18px;border:2px solid #a7b5c4;border-radius:50%}.option input:checked+span{border-color:#142b44;background:#142b44;color:white}.option input:checked+span:after{border:5px solid #ffbe60;background:#142b44}.option input:focus-visible+span{outline:3px solid #b46a00;outline-offset:4px}.result{background:#142b44;color:#fff;border-radius:25px;padding:29px 26px;box-shadow:0 12px 32px #142b4414}.result-label{font-size:16px;margin:0;color:#d6e1ed}.duration{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:24px 0 12px;white-space:nowrap}.number{font-size:clamp(52px,14vw,76px);font-weight:760;letter-spacing:-.05em;line-height:1.1;font-variant-numeric:tabular-nums}.unit{font-size:19px;font-weight:650;color:#d6e1ed;margin-right:5px}.seconds{text-align:center;color:#aebfd1;font-size:14px;margin:0;font-variant-numeric:tabular-nums}@media(max-width:360px){body{padding:24px 14px}.result{padding:25px 20px}.duration{gap:5px}.unit{font-size:16px}.option span{padding:15px}header{margin-bottom:22px}}
+
+.settings-button{border:1px solid #ccd7e3;background:white;color:#142b44;width:42px;height:42px;border-radius:50%;font-size:25px;cursor:pointer}.current{display:flex;justify-content:space-between;font-size:18px;margin:0 4px 18px;font-variant-numeric:tabular-nums}.current span{font-size:14px;align-self:center}.current time{font-weight:700}header{margin-bottom:24px}dialog{width:calc(100% - 32px);max-width:440px;border:0;border-radius:22px;padding:25px;color:#142b44;background:#edf2f7;box-shadow:0 20px 70px #142b4450}dialog::backdrop{background:#07182c80}.settings-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px}.settings-head h2{font-size:20px;margin:0}.settings-head button{border:0;background:transparent;font-size:28px;color:#142b44;cursor:pointer;width:40px;height:40px}.settings-note{font-size:14px;line-height:1.8;color:#50647a}.done{width:100%;border:0;background:#142b44;color:white;padding:15px;border-radius:12px;font:inherit;font-weight:650;cursor:pointer}button:focus-visible{outline:3px solid #b46a00;outline-offset:3px}
+.duration{margin:22px 0;gap:6px}.number{font-size:clamp(44px,12vw,64px)}.unit{font-size:17px;margin-right:0}.range-to{text-align:center;color:#ffbe60;font-size:26px;line-height:1}.seconds{margin-top:25px}.options label{font-size:14px;font-weight:650}.options input{display:block;width:100%;min-width:0;margin-top:10px;border:1px solid #a7b5c4;border-radius:10px;padding:12px 6px;font:inherit;font-size:22px;color:#142b44;background:white}#settings-error{color:#a02525;font-size:14px}
+</style>
+</head>
+<body><main>
+<header><div><p class="eyebrow">MORNING TIMER</p><h1>あしたの朝まで</h1></div><button id="settings-button" aria-label="開放時刻の設定" class="settings-button">⚙</button></header><div class="clock current">いま <time id="now">--:--:--</time><span>日本時間</span></div><dialog id="settings"><div class="settings-head"><h2>開放時刻の設定</h2><button id="close-settings" aria-label="設定を閉じる">×</button></div>
+<form id="range-form"><div class="options"><label>開放の開始<input id="start-time" type="time" value="05:30" required></label><label>開放の終了<input id="end-time" type="time" value="06:00" required></label></div><p id="settings-error" role="alert"></p><button type="submit" class="done">保存</button></form></dialog>
+<section class="result" aria-label="ダイヤルを合わせる時間の範囲">
+<p class="result-label">この範囲にダイヤルを合わせる</p>
+<div class="duration"><span class="number" id="min-hours">--</span><span class="unit">時間</span><span class="number" id="min-minutes">--</span><span class="unit">分後</span></div>
+<div class="range-to">〜</div>
+<div class="duration"><span class="number" id="max-hours">--</span><span class="unit">時間</span><span class="number" id="max-minutes">--</span><span class="unit">分後</span></div>
+<p class="seconds" id="window-label">5:30〜6:00に開放</p>
+</section>
+</main>
+<script>
+let range={start:330,end:360};
+function valid(r){return r&&Number.isInteger(r.start)&&Number.isInteger(r.end)&&r.start>=0&&r.end<1440&&r.end>r.start;}
+try{const saved=JSON.parse(localStorage.getItem('morning-unlock-range'));if(valid(saved))range=saved;}catch{}
+function calculate(nowMs,r=range){
+ const d=new Date(nowMs+32400000);
+ let start=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),0,r.start)-32400000;
+ if(start<nowMs)start+=86400000;
+ const end=start+(r.end-r.start)*60000;
+ return {minimum:Math.ceil((start-nowMs)/60000),maximum:Math.floor((end-nowMs)/60000)};
+}
+const fmt=new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+function timeLabel(n){return Math.floor(n/60)+':'+String(n%60).padStart(2,'0');}
+function render(){
+ const now=Date.now(),r=calculate(now);
+ document.getElementById('now').textContent=fmt.format(now);
+ for(const [prefix,n] of [['min',r.minimum],['max',r.maximum]]){
+ document.getElementById(prefix+'-hours').textContent=Math.floor(n/60);
+ document.getElementById(prefix+'-minutes').textContent=String(n%60).padStart(2,'0');
+ }
+ document.getElementById('window-label').textContent=timeLabel(range.start)+'〜'+timeLabel(range.end)+'に開放';return r;
+}
+const settings=document.getElementById('settings');
+document.getElementById('settings-button').addEventListener('click',()=>{
+ document.getElementById('start-time').value=timeLabel(range.start).padStart(5,'0');
+ document.getElementById('end-time').value=timeLabel(range.end).padStart(5,'0');
+ document.getElementById('settings-error').textContent='';settings.showModal();
+});
+document.getElementById('close-settings').addEventListener('click',()=>settings.close());
+document.getElementById('range-form').addEventListener('submit',e=>{
+ e.preventDefault();const parse=id=>{const t=document.getElementById(id).value;if(!/^\d{2}:\d{2}$/.test(t))return NaN;const [h,m]=t.split(':').map(Number);return h*60+m;};
+ const next={start:parse('start-time'),end:parse('end-time')};
+ if(!valid(next)){document.getElementById('settings-error').textContent='終了は開始より後の時刻にしてください。';return;}
+ range=next;try{localStorage.setItem('morning-unlock-range',JSON.stringify(range));}catch{}render();settings.close();
+});
+render();setInterval(render,1000);document.addEventListener('visibilitychange',render);
+if(document.modelContext?.registerTool){try{Promise.resolve(document.modelContext.registerTool({name:'get_lock_range',title:'ダイヤルの設定範囲を確認',description:'現在時刻から、開放時間帯に収まる分単位のロック時間の下限・上限を返します。',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute(){return {...render(),unlockStart:timeLabel(range.start),unlockEnd:timeLabel(range.end),timezone:'Asia/Tokyo'};}})).catch(()=>{});}catch{}}
+</script></body></html>
