@@ -9,16 +9,16 @@
 
 .settings-button{border:1px solid #ccd7e3;background:white;color:#142b44;width:42px;height:42px;border-radius:50%;font-size:25px;cursor:pointer}.current{display:flex;justify-content:space-between;font-size:18px;margin:0 4px 18px;font-variant-numeric:tabular-nums}.current span{font-size:14px;align-self:center}.current time{font-weight:700}header{margin-bottom:24px}dialog{width:calc(100% - 32px);max-width:440px;border:0;border-radius:22px;padding:25px;color:#142b44;background:#edf2f7;box-shadow:0 20px 70px #142b4450}dialog::backdrop{background:#07182c80}.settings-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px}.settings-head h2{font-size:20px;margin:0}.settings-head button{border:0;background:transparent;font-size:28px;color:#142b44;cursor:pointer;width:40px;height:40px}.settings-note{font-size:14px;line-height:1.8;color:#50647a}.done{width:100%;border:0;background:#142b44;color:white;padding:15px;border-radius:12px;font:inherit;font-weight:650;cursor:pointer}button:focus-visible{outline:3px solid #b46a00;outline-offset:3px}
 .duration{margin:22px 0;gap:6px}.number{font-size:clamp(44px,12vw,64px)}.unit{font-size:17px;margin-right:0}.range-to{text-align:center;color:#ffbe60;font-size:26px;line-height:1}.seconds{margin-top:25px}.options label{font-size:14px;font-weight:650}.options input{display:block;width:100%;min-width:0;margin-top:10px;border:1px solid #a7b5c4;border-radius:10px;padding:12px 6px;font:inherit;font-size:22px;color:#142b44;background:white}#settings-error{color:#a02525;font-size:14px}
+.allowed-range{text-align:center;font-size:17px;font-weight:650;line-height:1.8;margin:0;color:#fff;font-variant-numeric:tabular-nums}.number{font-size:clamp(52px,14vw,76px)}.result-label{text-align:center}.duration{margin:28px 0 22px}.seconds{margin-top:18px}
 </style>
 </head>
 <body><main>
 <header><div><p class="eyebrow">MORNING TIMER</p><h1>あしたの朝まで</h1></div><button id="settings-button" aria-label="開放時刻の設定" class="settings-button">⚙</button></header><div class="clock current">いま <time id="now">--:--:--</time><span>日本時間</span></div><dialog id="settings"><div class="settings-head"><h2>開放時刻の設定</h2><button id="close-settings" aria-label="設定を閉じる">×</button></div>
 <form id="range-form"><div class="options"><label>開放の開始<input id="start-time" type="time" value="05:30" required></label><label>開放の終了<input id="end-time" type="time" value="06:00" required></label></div><p id="settings-error" role="alert"></p><button type="submit" class="done">保存</button></form></dialog>
 <section class="result" aria-label="ダイヤルを合わせる時間の範囲">
-<p class="result-label">この範囲にダイヤルを合わせる</p>
-<div class="duration"><span class="number" id="min-hours">--</span><span class="unit">時間</span><span class="number" id="min-minutes">--</span><span class="unit">分後</span></div>
-<div class="range-to">〜</div>
-<div class="duration"><span class="number" id="max-hours">--</span><span class="unit">時間</span><span class="number" id="max-minutes">--</span><span class="unit">分後</span></div>
+<p class="result-label">ダイヤルはこのあたりに</p>
+<div class="duration"><span class="number" id="target-hours">--</span><span class="unit">時間</span><span class="number" id="target-minutes">--</span><span class="unit">分</span></div>
+<p class="allowed-range" id="allowed-range">--時間--分〜--時間--分ならOK</p>
 <p class="seconds" id="window-label">5:30〜6:00に開放</p>
 </section>
 </main>
@@ -31,18 +31,22 @@ function calculate(nowMs,r=range){
  let start=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),0,r.start)-32400000;
  if(start<nowMs)start+=86400000;
  const end=start+(r.end-r.start)*60000;
- return {minimum:Math.ceil((start-nowMs)/60000),maximum:Math.floor((end-nowMs)/60000)};
+ return {minimum:Math.ceil((start-nowMs)/600000)*10,maximum:Math.floor((end-nowMs)/600000)*10};
 }
 const fmt=new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
 function timeLabel(n){return Math.floor(n/60)+':'+String(n%60).padStart(2,'0');}
 function render(){
  const now=Date.now(),r=calculate(now);
  document.getElementById('now').textContent=fmt.format(now);
- for(const [prefix,n] of [['min',r.minimum],['max',r.maximum]]){
- document.getElementById(prefix+'-hours').textContent=Math.floor(n/60);
- document.getElementById(prefix+'-minutes').textContent=String(n%60).padStart(2,'0');
- }
- document.getElementById('window-label').textContent=timeLabel(range.start)+'〜'+timeLabel(range.end)+'に開放';return r;
+ const available=r.minimum<=r.maximum;
+ document.querySelectorAll('.duration, .allowed-range').forEach(el=>{el.style.display=available?'':'none';});
+ const target=Math.min(r.maximum,Math.max(r.minimum,Math.round((r.minimum+r.maximum)/20)*10));
+ document.getElementById('target-hours').textContent=Math.floor(target/60);
+ document.getElementById('target-minutes').textContent=String(target%60).padStart(2,'0');
+ const duration=n=>Math.floor(n/60)+'時間'+String(n%60).padStart(2,'0')+'分';
+ document.getElementById('allowed-range').textContent=duration(r.minimum)+'〜'+duration(r.maximum)+'ならOK';
+ r.recommended=available?target:null;
+ document.getElementById('window-label').textContent=available?timeLabel(range.start)+'〜'+timeLabel(range.end)+'に開放':'この開放時間帯には10分刻みの設定がありません';return r;
 }
 const settings=document.getElementById('settings');
 document.getElementById('settings-button').addEventListener('click',()=>{
@@ -58,5 +62,5 @@ document.getElementById('range-form').addEventListener('submit',e=>{
  range=next;try{localStorage.setItem('morning-unlock-range',JSON.stringify(range));}catch{}render();settings.close();
 });
 render();setInterval(render,1000);document.addEventListener('visibilitychange',render);
-if(document.modelContext?.registerTool){try{Promise.resolve(document.modelContext.registerTool({name:'get_lock_range',title:'ダイヤルの設定範囲を確認',description:'現在時刻から、開放時間帯に収まる分単位のロック時間の下限・上限を返します。',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute(){return {...render(),unlockStart:timeLabel(range.start),unlockEnd:timeLabel(range.end),timezone:'Asia/Tokyo'};}})).catch(()=>{});}catch{}}
+if(document.modelContext?.registerTool){try{Promise.resolve(document.modelContext.registerTool({name:'get_lock_range',title:'ダイヤルの設定範囲を確認',description:'現在時刻から、開放時間帯に収まる10分刻みのロック時間の下限・上限を返します。',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute(){return {...render(),unlockStart:timeLabel(range.start),unlockEnd:timeLabel(range.end),timezone:'Asia/Tokyo'};}})).catch(()=>{});}catch{}}
 </script></body></html>
